@@ -1,7 +1,7 @@
 ﻿<Window x:Class="GPD915_ToolDev.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="300" Width="300" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}">
+        Title="MainWindow" Height="300" Width="300" Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}" Closing="Window_Closing">
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="Settings">

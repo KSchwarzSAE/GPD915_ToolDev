@@ -83,7 +83,9 @@ namespace GPD915_ToolDev
 
         // der speicherort des spieles (null = nicht installiert)
         public string GameDir { get; set; }
-        
+
+        public string Origin { get; set; }
+
         public Game()
         { }
 
@@ -105,6 +107,11 @@ namespace GPD915_ToolDev
             XAttribute nameAtt = _element.Attribute("Name");
             // und den namen auslesen
             Name = (string)nameAtt;
+
+            // das attribut für den origin suchen
+            XAttribute originAtt = _element.Attribute("Origin");
+            // und den origin auslesen
+            Origin = (string)originAtt;
         }
 
         // Speichert das Game Objekt in dem XElement
@@ -120,6 +127,17 @@ namespace GPD915_ToolDev
             // welches den Namen beinhaltet
             XAttribute nameAtt = new XAttribute("Name", Name);
             _element.Add(nameAtt);
+
+            // Ein Attribut mit dem Namen "Origin",
+            // welches den Origin beinhaltet
+            XAttribute originAtt = new XAttribute("Origin", Origin);
+            _element.Add(originAtt);
+        }
+
+        public bool IsInstalled()
+        {
+            // TODO: Prüfen ob das spiel wirklich vorhanden ist
+            return GameDir != null;
         }
 
     }

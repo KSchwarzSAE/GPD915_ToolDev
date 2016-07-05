@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -21,7 +22,11 @@ namespace GPD915_ToolDev
     public partial class MainWindow : Window
     {
 
+        // Unser GameManager
         private GameManager gameManager;
+
+        // der pfad zu unserer Einstellungsdatei
+        private string configFilePath = "./Config.xml";
 
         public MainWindow()
         {
@@ -29,8 +34,25 @@ namespace GPD915_ToolDev
 
             // einstellungen laden
             gameManager = new GameManager();
-            gameManager.Load("E://Test.xml");
 
+            // prüfen ob die datei existiert
+            if(File.Exists(configFilePath))
+            {
+                // wenn ja => dann laden wir sie
+                gameManager.Load(configFilePath);
+            }
+            else
+            {
+                // wenn nicht => erstellen wir standard games
+                Game game1 = new Game();
+                game1.Name = "Erstes Spiel";
+                gameManager.games.Add(game1);
+
+                // config speichern
+                gameManager.Save(configFilePath);
+            }            
+
+            // alle spiele durchgehen
             foreach (Game game in gameManager.games)
             {
                 // tabitem erstellen
@@ -40,10 +62,16 @@ namespace GPD915_ToolDev
                 // den anzeigenamen des tabs auf den spielenamen setzten
                 item.Header = game.Name;
                 // ein neues gametab erstellen und dem tabitem hinzufügen
-                item.Content = new GameTab();
+                item.Content = new GameTab(game);
                 // das tabitem dem tabcontrol hinzufügen
                 GameTabControl.Items.Add(item);
             }
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            // alle etwaigen Änderungen speichern
+            gameManager.Save(configFilePath);
         }        
 
     }
