@@ -19,6 +19,7 @@ using System.Windows.Shapes;
 using Path = System.IO.Path;
 using System.Threading;
 using System.ComponentModel;
+using System.Windows.Threading;
 
 namespace GPD915_ToolDev
 {
@@ -27,6 +28,7 @@ namespace GPD915_ToolDev
     {
         NOT_INSTALLED,
         UPDATE_REQUIRED,
+        UPDATE_PENDING,
         UPDATING,
         PLAYABLE,
         PLAYING
@@ -44,11 +46,16 @@ namespace GPD915_ToolDev
         // der aktuelle zustand des games
         private GameTabState State;
 
-        private BackgroundWorker updateWorker;
+        private DispatcherTimer updateTimer;
 
-        public GameTab(Game _game)
+        private MainWindow window;
+
+        public GameTab(Game _game, MainWindow _window)
         {
-            // einstellungen setzten
+            // window setzen
+            window = _window;
+
+            // einstellungen setzen
             game = _game;
 
             // das tab initialisieren
@@ -71,31 +78,37 @@ namespace GPD915_ToolDev
                 State = GameTabState.NOT_INSTALLED;
             }
 
+            updateTimer = new DispatcherTimer();
+            updateTimer.Interval = TimeSpan.FromSeconds(5);
+            updateTimer.Tick += updateTimer_Tick;
+
             RefreshUI();
+        }
+
+        void updateTimer_Tick(object sender, EventArgs e)
+        {
+            // Wenn das spiel nicht spielbar ist => nicht auf updates prüfen
+            if (State != GameTabState.PLAYABLE) { return; }
+
+            // Update check starten
+            CheckForUpdates();
         }
 
         private void CheckForUpdates()
         {
             // wenn bereits ein update läuft => nicht nochmal updaten
-            if (updateWorker != null) { return; }
+            if (State == GameTabState.UPDATING
+                || State == GameTabState.UPDATE_PENDING) { return; }
 
-            // Worker erstellen, welcher das threading handhabt
-            updateWorker = new BackgroundWorker();
-            updateWorker.WorkerReportsProgress = true;
-            updateWorker.WorkerSupportsCancellation = true;
+            State = GameTabState.UPDATE_PENDING;
 
-            updateWorker.DoWork += OnCheckForUpdates;
-            updateWorker.RunWorkerCompleted += OnUpdateCompleted;
-            updateWorker.ProgressChanged += OnProgressChanged;
-
-            // worker starten
-            updateWorker.RunWorkerAsync();
+            window.QueueUpdate(this);
 
             // ui aktualisieren
             RefreshUI();
         }
 
-        private void OnUpdateCompleted(object sender, RunWorkerCompletedEventArgs e)
+        public void OnUpdateCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             // wurde das update abgebrochen (durch den nutzer oder einen fehler)?
             if(e.Cancelled || e.Error != null)
@@ -109,14 +122,11 @@ namespace GPD915_ToolDev
                 State = GameTabState.PLAYABLE;
             }
 
-            // update fertig
-            updateWorker = null;
-
             // ui aktualisieren
             RefreshUI();
         }
 
-        private void OnProgressChanged(object sender, ProgressChangedEventArgs e)
+        public void OnProgressChanged(object sender, ProgressChangedEventArgs e)
         {
             // den wert der progressbar auf den fortschritt setzen
             updateProgressBar.Value = e.ProgressPercentage;
@@ -124,10 +134,15 @@ namespace GPD915_ToolDev
             RefreshUI();
         }
 
-        private void OnCheckForUpdates(object sender, DoWorkEventArgs e)
+        public void OnCheckForUpdates(object sender, DoWorkEventArgs e)
         {
             // signalisieren das geupdated wird
             State = GameTabState.UPDATING;
+
+            // den parameter holen und in einen BackgroundWorker casten
+            BackgroundWorker updateWorker = e.Argument as BackgroundWorker;
+
+            // den progress resetten
             updateWorker.ReportProgress(0);
 
             // installationspfad
@@ -178,6 +193,13 @@ namespace GPD915_ToolDev
                     return;
                 }
 
+                // läuft gerade ein spiel?
+                while(window.State == LauncherState.GAME_PLAYING)
+                {
+                    // thread pausieren
+                    Thread.Yield();
+                }
+
                 // der pfad der datei lokal
                 string localFilePath = 
                     Path.Combine(installDirectory, Path.GetFileName(fileToDownload));
@@ -202,6 +224,7 @@ namespace GPD915_ToolDev
         private void RefreshUI()
         {
             string launchButtonText = "";
+            updateProgressBar.Visibility = System.Windows.Visibility.Hidden;
 
             switch (State)
             {
@@ -211,7 +234,14 @@ namespace GPD915_ToolDev
                 case GameTabState.UPDATE_REQUIRED:
                     launchButtonText = "Update";
                     break;
+                case GameTabState.UPDATE_PENDING:
+                    updateProgressBar.Visibility = System.Windows.Visibility.Visible;
+                    updateProgressBar.IsIndeterminate = true;
+                    launchButtonText = "Update pending";
+                    break;
                 case GameTabState.UPDATING:
+                    updateProgressBar.Visibility = System.Windows.Visibility.Visible;
+                    updateProgressBar.IsIndeterminate = false;
                     launchButtonText = "Cancel Update";
                     break;
                 case GameTabState.PLAYABLE:
@@ -240,7 +270,7 @@ namespace GPD915_ToolDev
                     break;
                 case GameTabState.UPDATING:
                     // update abbrechen
-                    updateWorker.CancelAsync();
+                    window.CancelUpdate();
                     break;
                 case GameTabState.PLAYABLE:
                     // spiel starten
@@ -254,7 +284,13 @@ namespace GPD915_ToolDev
 
         private void Launch()
         {
-            MessageBox.Show("Spiel läuft (noob).");
+            if (window.State == LauncherState.GAME_PLAYING)
+            {
+                MessageBox.Show("Nur ein Spiel gleichzeitig!");
+                return;
+            }
+            
+
         }
 
         private void Install()
@@ -290,5 +326,6 @@ namespace GPD915_ToolDev
             // anzeige aktualisieren
             RefreshUI();
         }
+
     }
 }

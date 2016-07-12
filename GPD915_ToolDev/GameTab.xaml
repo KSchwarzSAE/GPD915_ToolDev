@@ -28,6 +28,9 @@
                             Grid.Column="2" Grid.ColumnSpan="2"
                             Grid.Row="3"
                 Click="LaunchOrInstallButton_Click"/>
-        <ProgressBar x:Name="updateProgressBar" Grid.Column="4" HorizontalAlignment="Left" Height="160" Margin="23,10,0,0" Grid.Row="1" VerticalAlignment="Top" Width="27" Orientation="Vertical" Grid.RowSpan="3"/>
+        <ProgressBar x:Name="updateProgressBar" 
+                     Grid.Column="2" Grid.Row="4"
+                     Grid.ColumnSpan="2"
+                     Margin="0, 5"/>
     </Grid>
 </UserControl>
