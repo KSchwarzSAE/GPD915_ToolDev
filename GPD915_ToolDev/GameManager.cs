@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -76,15 +77,34 @@ namespace GPD915_ToolDev
     }
 
     // Enthält die Einstellungen eines Spieles
-    public class Game
+    public class Game : INotifyPropertyChanged
     {
         // der Name des Spieles
         public string Name { get; set; }
 
+        private string gameDir;
+
         // der speicherort des spieles (null = nicht installiert)
-        public string GameDir { get; set; }
+        public string GameDir
+        {
+            get
+            {
+                return gameDir;
+            }
+
+            set
+            {
+                gameDir = value;
+                if(PropertyChanged != null)
+                {
+                    PropertyChanged(this, new PropertyChangedEventArgs("GameDir"));
+                }
+            }
+        }
 
         public string Origin { get; set; }
+
+        public event PropertyChangedEventHandler PropertyChanged;
 
         public Game()
         { }

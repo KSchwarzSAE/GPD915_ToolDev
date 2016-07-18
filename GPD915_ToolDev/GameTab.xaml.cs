@@ -20,6 +20,8 @@ using Path = System.IO.Path;
 using System.Threading;
 using System.ComponentModel;
 using System.Windows.Threading;
+using System.Collections;
+using System.Collections.ObjectModel;
 
 namespace GPD915_ToolDev
 {
@@ -34,6 +36,23 @@ namespace GPD915_ToolDev
         PLAYING
     }
 
+    // Stellt ein Erfolg dar
+    public class Achievement
+    {
+        // Der Name des Erfolges
+        public string Name { get; set; }
+
+        // Wurde der Erfolg erreicht
+        public bool Achieved { get; set; }
+
+        public Achievement(string _name, bool _achieved = false)
+        {
+            Name = _name;
+            Achieved = _achieved;
+        }
+
+    }
+
     /// <summary>
     /// Interaktionslogik für GameTab.xaml
     /// </summary>
@@ -41,31 +60,40 @@ namespace GPD915_ToolDev
     {
 
         // die einstellungen des spiels
-        private Game game;
+        public Game GameSettings { get; set; }
 
         // der aktuelle zustand des games
-        private GameTabState State;
+        public GameTabState State { get; set; }
 
         private DispatcherTimer updateTimer;
 
         private MainWindow window;
 
+        private ObservableCollection<Achievement> Avmnts;
+
         public GameTab(Game _game, MainWindow _window)
         {
+            this.DataContext = this;
+            Avmnts = new ObservableCollection<Achievement>();
+            Avmnts.Add(new Achievement("Started the Game"));
+            Avmnts.Add(new Achievement("Ate an Icecream"));
+
             // window setzen
             window = _window;
 
             // einstellungen setzen
-            game = _game;
+            GameSettings = _game;
 
             // das tab initialisieren
             InitializeComponent();
 
             // Label mit dem Namen des Spieles setzten
-            gameNameLabel.Content = game.Name;
+            // gameNameLabel.Content = game.Name;
+
+            avmntList.ItemsSource = Avmnts;
 
             // wenn das spiel installiert ist
-            if(game.IsInstalled())
+            if(GameSettings.IsInstalled())
             {
                 // min. einmal die spiel dateien überprüfen
                 State = GameTabState.UPDATE_REQUIRED;
@@ -146,13 +174,13 @@ namespace GPD915_ToolDev
             updateWorker.ReportProgress(0);
 
             // installationspfad
-            string installDirectory = game.GameDir;
+            string installDirectory = GameSettings.GameDir;
 
             // liste aller dateien welche noch gedownloadet werden müssen
             List<string> toDownload = new List<string>();
 
             // welche dateien gibt es?
-            foreach (string file in Directory.GetFiles(game.Origin))
+            foreach (string file in Directory.GetFiles(GameSettings.Origin))
             {
                 // vorübergehend ordener ignorieren
                 if(Directory.Exists(file)) { continue; }
@@ -289,8 +317,8 @@ namespace GPD915_ToolDev
                 MessageBox.Show("Nur ein Spiel gleichzeitig!");
                 return;
             }
-            
 
+            Avmnts.Add(new Achievement("Play Button Pressed", true));
         }
 
         private void Install()
@@ -298,7 +326,7 @@ namespace GPD915_ToolDev
             // den benutzer fragen wo das spiel gespeichert werden soll
             SaveFileDialog saveFileDialog = new SaveFileDialog();
             saveFileDialog.Title = "Choose save location";
-            saveFileDialog.InitialDirectory = Path.GetFullPath("./Games/" + game.Name + "/");
+            saveFileDialog.InitialDirectory = Path.GetFullPath("./Games/" + GameSettings.Name + "/");
             saveFileDialog.Filter = "Executables (*.exe)|*.exe|All Files|*.*";
 
             // den dialog anzeigen
@@ -313,9 +341,9 @@ namespace GPD915_ToolDev
             }
 
             // installationspfad setzten0
-            game.GameDir = Path.GetDirectoryName(saveFileDialog.FileName);
+            GameSettings.GameDir = Path.GetDirectoryName(saveFileDialog.FileName);
 
-            MessageBox.Show("Du hast folgenden Pfad ausgewählt: " + game.GameDir);
+            MessageBox.Show("Du hast folgenden Pfad ausgewählt: " + GameSettings.GameDir);
 
             // das spiel muss geladen werden
             State = GameTabState.UPDATE_REQUIRED;
