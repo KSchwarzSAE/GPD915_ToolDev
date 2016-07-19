@@ -26,6 +26,33 @@ using System.Collections.ObjectModel;
 namespace GPD915_ToolDev
 {
 
+    public class Resolution
+    {
+
+        public int Width;
+
+        public int Height;
+
+        public Resolution(int _width, int _height)
+        {
+            Width = _width;
+            Height = _height;
+        }
+
+        public Resolution(BinaryReader reader)
+        {
+            Width = reader.ReadInt32();
+            Height = reader.ReadInt32();
+        }
+
+        public void Save(BinaryWriter writer)
+        {
+            writer.Write(Width);
+            writer.Write(Height);
+        }
+
+    }
+
     public enum GameTabState
     {
         NOT_INSTALLED,
@@ -59,6 +86,10 @@ namespace GPD915_ToolDev
     public partial class GameTab : UserControl
     {
 
+        public static readonly int VERSION = 1;
+
+        public static readonly int CHECKSUM = 0xBADB001;
+
         // die einstellungen des spiels
         public Game GameSettings { get; set; }
 
@@ -70,6 +101,9 @@ namespace GPD915_ToolDev
         private MainWindow window;
 
         private ObservableCollection<Achievement> Avmnts;
+
+        // enthält alle eingestellten auflösungen
+        private List<Resolution> resolutions;
 
         public GameTab(Game _game, MainWindow _window)
         {
@@ -83,6 +117,21 @@ namespace GPD915_ToolDev
 
             // einstellungen setzen
             GameSettings = _game;
+
+            // liste für die auflösungen erstellen
+            resolutions = new List<Resolution>();
+
+            // Liste laden
+            LoadResolutionList();
+
+            // falls die liste leer ist
+            if(resolutions.Count == 0)
+            {
+                //  => mit beispielwerten füllen
+                resolutions.Add(new Resolution(1024, 786));
+                // die liste speichern
+                SaveResolutionList();
+            }            
 
             // das tab initialisieren
             InitializeComponent();
@@ -111,6 +160,68 @@ namespace GPD915_ToolDev
             updateTimer.Tick += updateTimer_Tick;
 
             RefreshUI();
+        }
+
+        private void LoadResolutionList()
+        {
+            string path = "./" + GameSettings.Name;
+
+            // gibt es die datei?
+            if(!File.Exists(path))
+            {
+                // wenn nein => nicht laden
+                return;
+            }
+
+            using(FileStream stream = File.Open(path, FileMode.Open))
+            {
+                BinaryReader reader = new BinaryReader(stream);
+
+                int version = reader.ReadInt32();
+                int resolutionCount = reader.ReadInt32();
+
+                for(int i = 0; i < resolutionCount; ++i)
+                {
+                    resolutions.Add(new Resolution(reader));
+                }
+
+                int checksum = reader.ReadInt32();
+
+                if(checksum != CHECKSUM)
+                {
+                    // etwas stimmt nicht
+                    resolutions.Clear();
+                }
+            }
+        }
+
+        private void SaveResolutionList()
+        {
+            string path = "./" + GameSettings.Name;
+
+            // datei zum schreiben öffnen, sollte die datei nicht existieren,
+            // dann wird sie erstellt
+            using(Stream fileStream = File.Open(path, FileMode.Create, FileAccess.Write))
+            {
+                // Ein Writer damit wir einfacher die daten schreiben können
+                BinaryWriter writer = new BinaryWriter(fileStream);
+
+                // Version schreiben
+                writer.Write(VERSION);
+
+                // Anzahl der Elemente schreiben
+                writer.Write(resolutions.Count);
+
+                // jedes element...
+                for(int i = 0; i < resolutions.Count; ++i)
+                {
+                    // ... speichern
+                    resolutions[i].Save(writer);
+                }
+
+                // checksum schreiben
+                writer.Write(CHECKSUM);
+            }
         }
 
         void updateTimer_Tick(object sender, EventArgs e)

@@ -1,0 +1,17 @@
+Was im Test vorkommen kann (aber nicht muss):
+
+Solange nicht angegeben ist, dass etwas programmiertechnisch gelöst werden soll, gilt
+die aufgabe in XAML zu lösen. (Entweder direkt im XAML oder mit Designer / Eigenschaften)
+
+-> WPF-Projekt erstellen
+-> Window -> Titel / Höhe / Breite / etc. verändern
+-> MessageBox
+-> Klassen anlegen, welche Datenbindung unterstützen
+-> Klasse so erweitern, dass Änderungen übernommen werden
+-> OpenFileDialog / SaveFileDialog
+-> XML Speichern / Laden
+-> Binär Speichern / Laden
+-> WPF-Elemente (Labels / Buttons)
+-> Menü und Statusbar inc. Mnemonics
+-> ListView inc. Template
+-> Datenbindung
